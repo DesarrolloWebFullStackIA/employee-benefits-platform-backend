@@ -1,3 +1,9 @@
+from schema.benefit_schema import (
+    BenefitBase,
+    BenefitCreate,
+    BenefitResponse,
+    BenefitUpdate,
+)
 from schema.employee_schema import (
     EmployeeBase,
     EmployeeBenefitItem,
@@ -18,4 +24,8 @@ __all__ = [
     "EmployeeExpenseItem",
     "EmployeeResponse",
     "EmployeeDetailResponse",
+    "BenefitBase",
+    "BenefitCreate",
+    "BenefitUpdate",
+    "BenefitResponse",
 ]
