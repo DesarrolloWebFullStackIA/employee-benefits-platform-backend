@@ -68,7 +68,7 @@ def get_all_employees(db: Session) -> List[Dict[str, Any]]:
     return [_format_employee_dict(emp) for emp in employees]
 
 
-def get_employee_by_id(db: Session, employee_id: int) -> Optional[Dict[str, Any]]:
+def get_employee_by_id(db: Session, employee_id: int) -> Dict[str, Any]:
     """Retrieve full employee details including category benefits and historical expenses."""
     employee = (
         db.query(Employee)
@@ -80,7 +80,10 @@ def get_employee_by_id(db: Session, employee_id: int) -> Optional[Dict[str, Any]
         .first()
     )
     if not employee:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Empleado con ID {employee_id} no encontrado",
+        )
 
     metrics = _compute_employee_metrics(employee)
 
@@ -165,11 +168,14 @@ def create_employee(db: Session, employee_in: EmployeeCreate) -> Dict[str, Any]:
 
 def update_employee(
     db: Session, employee_id: int, employee_in: EmployeeUpdate
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """Update employee personal information."""
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Empleado con ID {employee_id} no encontrado",
+        )
 
     # Validate email uniqueness if changed
     if employee_in.email and employee_in.email != employee.email:
@@ -196,7 +202,10 @@ def delete_employee(db: Session, employee_id: int) -> bool:
     """Delete employee by ID triggering cascading removal of associated benefits and expenses."""
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:
-        return False
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Empleado con ID {employee_id} no encontrado",
+        )
 
     db.delete(employee)
     db.commit()
@@ -205,8 +214,8 @@ def delete_employee(db: Session, employee_id: int) -> bool:
 
 def update_employee_budget(
     db: Session, employee_id: int, new_max_budget: Decimal
-) -> Optional[Dict[str, Any]]:
-    """Update employee's total assigned budget cap with validation of committed expenses."""
+) -> Dict[str, Any]:
+    """Update employee's total assigned budget cap with validation of committed expenses (CA-BE-04.2)."""
     employee = (
         db.query(Employee)
         .options(
@@ -217,9 +226,12 @@ def update_employee_budget(
         .first()
     )
     if not employee:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Empleado con ID {employee_id} no encontrado",
+        )
 
-    # Calculate committed spending (PENDING and APPROVED expenses)
+    # Calculate committed spending: SUM(expenses.amount) WHERE status IN ('PENDING', 'APPROVED') AND employee_id = :id
     spent_total_result = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .filter(
@@ -233,7 +245,7 @@ def update_employee_budget(
     # Guard: new_max_budget cannot be lower than already committed spending
     if new_max_budget < spent_total:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"El nuevo Total Asignado (€{new_max_budget:.2f}) no puede ser inferior "
                 f"al gasto ya comprometido por el empleado (€{spent_total:.2f})"
@@ -245,3 +257,4 @@ def update_employee_budget(
     db.refresh(employee)
 
     return _format_employee_dict(employee)
+
