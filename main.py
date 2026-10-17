@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import logging
 import time
 from typing import List
@@ -9,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from config.config_variables import settings
+from database.database import init_db
 from routes.routes import api_router
 
 # Configure logging
@@ -18,6 +20,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pluxee_backend")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle event handler: create database tables on startup."""
+    logger.info("Initializing database tables...")
+    init_db()
+    logger.info("Database tables initialized successfully.")
+    yield
+
+
 # Initialize FastAPI application
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -26,6 +38,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 # Global CORS Middleware
