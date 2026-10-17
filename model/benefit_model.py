@@ -1,10 +1,14 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, UniqueConstraint, func
+from sqlalchemy.orm import relationship
 
 from database.database import Base
 
 
 class Benefit(Base):
     __tablename__ = "benefits"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "category_id", name="uq_employee_category"),
+    )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     employee_id = Column(
@@ -27,6 +31,10 @@ class Benefit(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    # ORM Relationships
+    employee = relationship("Employee", back_populates="benefits")
+    category = relationship("Category", back_populates="benefits")
 
     def __repr__(self) -> str:
         return (

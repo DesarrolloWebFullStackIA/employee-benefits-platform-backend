@@ -1,4 +1,5 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy.orm import relationship
 
 from database.database import Base
 
@@ -31,6 +32,10 @@ class Expense(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    # ORM Relationships
+    employee = relationship("Employee", back_populates="expenses")
+    category = relationship("Category", back_populates="expenses")
 
     def __repr__(self) -> str:
         return (
