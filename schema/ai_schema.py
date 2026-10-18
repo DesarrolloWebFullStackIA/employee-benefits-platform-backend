@@ -91,3 +91,4 @@ class StructuredGenkitDiagnosis(BaseModel):
         default_factory=list,
         description="List of saturated category names nearing the budget limit"
     )
+
