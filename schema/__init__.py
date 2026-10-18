@@ -1,3 +1,11 @@
+from schema.ai_schema import (
+    AlertBlock,
+    BudgetInsightsRequest,
+    BudgetInsightsResponse,
+    HealthBlock,
+    RecommendationBlock,
+    StructuredGenkitDiagnosis,
+)
 from schema.benefit_schema import (
     BenefitBase,
     BenefitCreate,
@@ -28,4 +36,10 @@ __all__ = [
     "BenefitCreate",
     "BenefitUpdate",
     "BenefitResponse",
+    "HealthBlock",
+    "AlertBlock",
+    "RecommendationBlock",
+    "BudgetInsightsResponse",
+    "BudgetInsightsRequest",
+    "StructuredGenkitDiagnosis",
 ]

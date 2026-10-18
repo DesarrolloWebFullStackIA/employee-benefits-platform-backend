@@ -1,3 +1,3 @@
-from controller import benefit_controller, employee_controller
+from controller import ai_controller, benefit_controller, employee_controller
 
-__all__ = ["employee_controller", "benefit_controller"]
+__all__ = ["employee_controller", "benefit_controller", "ai_controller"]
