@@ -6,7 +6,7 @@ class HealthBlock(BaseModel):
     """Overall budget solvency metrics and qualitative executive summary."""
     status: str = Field(
         default="optimal",
-        description="Health status: optimal (<75% cap), warning (75-90%), critical (>=90%)"
+        description="Health status: optimal (<=33% cap), warning (33-66%), critical (>66%)"
     )
     spent: float = Field(default=0.0, description="Total amount consumed to date")
     limit: float = Field(default=0.0, description="Total assigned budget limit")
@@ -19,7 +19,7 @@ class HealthBlock(BaseModel):
 
 
 class AlertBlock(BaseModel):
-    """Budget limit and semaphore threshold alerts (>85% cap)."""
+    """Budget limit and semaphore threshold alerts (>66% cap or warning 33-66%)."""
     id: str = Field(..., description="Unique alert identifier")
     type: str = Field(default="category", description="Alert target type: 'category' or 'employee'")
     name: str = Field(..., description="Entity name reaching budget limit")
@@ -39,11 +39,11 @@ class RecommendationBlock(BaseModel):
     )
     underutilized: List[str] = Field(
         default_factory=list,
-        description="Categories with ample surplus budget (>45% remaining)"
+        description="Categories in safe zone (<=33% consumed)"
     )
     saturated: List[str] = Field(
         default_factory=list,
-        description="Categories near saturation or exceeding threshold (>85% consumed)"
+        description="Categories in red saturation zone (>66% consumed)"
     )
 
 
