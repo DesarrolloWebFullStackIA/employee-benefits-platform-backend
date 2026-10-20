@@ -9,6 +9,7 @@ class CategoryBase(BaseModel):
     description: Optional[str] = None
     icon: str
     color: str
+    budget: Optional[float] = Field(default=0.0, ge=0, description="Suggested limit/budget cap for this category")
 
     @field_validator("name")
     @classmethod
@@ -28,6 +29,8 @@ class CategoryUpdate(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    budget: Optional[float] = Field(None, ge=0)
+    active: Optional[bool] = None
 
     @field_validator("name")
     @classmethod
@@ -42,6 +45,7 @@ class CategoryUpdate(BaseModel):
 
 class CategoryResponse(CategoryBase):
     id: int
+    active: bool = True
     created_at: datetime
     benefits_count: Optional[int] = None
     expenses_count: Optional[int] = None
