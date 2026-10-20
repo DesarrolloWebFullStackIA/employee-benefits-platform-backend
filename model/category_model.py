@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, func, true
+from sqlalchemy import Boolean, Column, DateTime, Integer, Numeric, String, func, true
 from sqlalchemy.orm import relationship
 
 from database.database import Base
@@ -12,6 +12,7 @@ class Category(Base):
     description = Column(String(255), nullable=True)
     icon = Column(String(100), nullable=False)
     color = Column(String(50), nullable=False)
+    budget = Column(Numeric(10, 2), nullable=False, default=0.00)
     active = Column(Boolean, nullable=False, default=True, server_default=true())
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -20,4 +21,4 @@ class Category(Base):
     expenses = relationship("Expense", back_populates="category")
 
     def __repr__(self) -> str:
-        return f"<Category(id={self.id}, name='{self.name}')>"
+        return f"<Category(id={self.id}, name='{self.name}', budget={self.budget})>"

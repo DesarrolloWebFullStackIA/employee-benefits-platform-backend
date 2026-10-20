@@ -18,6 +18,8 @@ def _category_response(db: Session, category: Category) -> Dict:
         "description": category.description,
         "icon": category.icon,
         "color": category.color,
+        "budget": float(category.budget or 0.0),
+        "active": category.active,
         "benefits_count": (
             db.query(func.count(Benefit.id))
             .filter(Benefit.category_id == category.id)
