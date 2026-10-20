@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, func, true
 from sqlalchemy.orm import relationship
 
 from database.database import Base
@@ -10,8 +10,9 @@ class Category(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), unique=True, index=True, nullable=False)
     description = Column(String(255), nullable=True)
-    icon = Column(String(100), nullable=True)
-    color = Column(String(50), nullable=True)
+    icon = Column(String(100), nullable=False)
+    color = Column(String(50), nullable=False)
+    active = Column(Boolean, nullable=False, default=True, server_default=true())
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # ORM Relationships

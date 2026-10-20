@@ -1,5 +1,5 @@
 from typing import Generator
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -44,3 +44,19 @@ def init_db() -> None:
     """Create all database tables defined in SQLAlchemy models."""
     import model  # noqa: F401 - Ensure models are loaded into Base metadata
     Base.metadata.create_all(bind=engine)
+    _migrate_category_columns()
+
+
+def _migrate_category_columns() -> None:
+    """Add the active flag needed to filter the category catalog."""
+    columns = {
+        column["name"] for column in inspect(engine).get_columns("categories")
+    }
+    if "active" not in columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE categories ADD COLUMN active "
+                    "BOOLEAN NOT NULL DEFAULT TRUE"
+                )
+            )
