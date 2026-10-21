@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import relationship
 
 from database.database import Base
@@ -21,10 +21,12 @@ class Expense(Base):
         index=True,
     )
     amount = Column(Numeric(10, 2), nullable=False)
-    description = Column(String(255), nullable=False)
+    concept = Column(String(255), nullable=False)
+    date = Column(Date, nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    receipt_type = Column(String(10), nullable=True)
     receipt_url = Column(String(500), nullable=True)
-    status = Column(String(20), nullable=False, default="PENDING")
-    expense_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    rejection_reason = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
@@ -33,7 +35,7 @@ class Expense(Base):
         nullable=False,
     )
 
-    # ORM Relationships
+  
     employee = relationship("Employee", back_populates="expenses")
     category = relationship("Category", back_populates="expenses")
 
