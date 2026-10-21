@@ -1,4 +1,5 @@
 from typing import List, Union
+from decimal import Decimal
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,6 +13,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "0.0.0.0"
     API_V1_STR: str = "/api/v1"
+    CATEGORY_GLOBAL_BUDGET_CAP: Decimal = Decimal("45000.00")
 
     # SQLite Database Configuration
     DATABASE_URL: str = "sqlite:///./db.sqlite3"

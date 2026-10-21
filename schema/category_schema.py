@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -9,6 +10,8 @@ class CategoryBase(BaseModel):
     description: Optional[str] = None
     icon: str
     color: str
+    budget: Decimal = Field(default=Decimal("0.00"), ge=0)
+    active: bool = True
 
     @field_validator("name")
     @classmethod
@@ -28,6 +31,8 @@ class CategoryUpdate(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    budget: Optional[Decimal] = Field(None, ge=0)
+    active: Optional[bool] = None
 
     @field_validator("name")
     @classmethod
@@ -45,5 +50,6 @@ class CategoryResponse(CategoryBase):
     created_at: datetime
     benefits_count: Optional[int] = None
     expenses_count: Optional[int] = None
+    spent_amount: Decimal = Decimal("0.00")
 
     model_config = ConfigDict(from_attributes=True)
