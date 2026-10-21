@@ -32,13 +32,11 @@ class EmployeeBase(BaseModel):
         min_length=1,
         max_length=100,
         description="Assigned company department",
-        examples=["IT"],
+        examples=["Tecnología"],
     )
-    position: str = Field(
-        ...,
-        min_length=1,
-        max_length=100,
-        description="Job position or title",
+    position: Optional[str] = Field(
+        default=None,
+        description="Job position or title (optional/legacy)",
         examples=["Senior Cloud Architect"],
     )
     max_budget: Decimal = Field(

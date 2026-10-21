@@ -1,205 +1,343 @@
-import sqlite3
-import os
+"""
+Pluxee Enterprise HR Suite - Database Seeder
+Populates the SQLite database (db.sqlite3) with realistic test fixtures
+matching SQLAlchemy models, business logic constraints, and traffic light tiers.
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'app.db')
+Usage:
+    python database/seed.py
+"""
+
+import sys
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from pathlib import Path
+
+# Fix Windows console encoding for UTF-8
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+# Ensure project root is in python path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from database.database import Base, SessionLocal, engine
+from model.benefit_model import Benefit
+from model.category_model import Category
+from model.company_model import Company
+from model.employee_model import Employee
+from model.expense_model import Expense
+
 
 def seed_database():
-    print("🌱 Iniciando el proceso de seeding de la base de datos...")
-    
-    # Asegurar que el directorio existe
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    print("[*] Iniciando el proceso de seeding de la base de datos...")
 
+    # 1. Recrear el esquema completo para aplicar actualizaciones de modelos
+    print("[*] Recreando esquema de base de datos via SQLAlchemy metadata...")
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
     try:
-        # Iniciar transacción
-        conn.execute("BEGIN TRANSACTION;")
+        # 2. Poblar Presupuesto Global de la Compañía (Company)
+        print("[+] Configurando presupuesto corporativo global...")
+        company = Company(
+            id=1,
+            global_budget=Decimal("45000.00")
+        )
+        db.add(company)
+        db.commit()
 
-        # 0. Limpiar datos previos para garantizar idempotencia (US-BE-03.5)
-        cursor.executescript("""
-            DROP TABLE IF EXISTS expenses;
-            DROP TABLE IF EXISTS benefits;
-            DROP TABLE IF EXISTS employees;
-            DROP TABLE IF EXISTS categories;
-        """)
-
-        # 1. Crear Esquema Relacional
-        cursor.executescript("""
-            CREATE TABLE categories (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE,
-                description TEXT,
-                icon TEXT,
-                badge_color TEXT
-            );
-
-            CREATE TABLE employees (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                department TEXT NOT NULL,
-                max_budget REAL NOT NULL
-            );
-
-            CREATE TABLE benefits (
-                id TEXT PRIMARY KEY,
-                employee_id TEXT,
-                category_id TEXT,
-                allocated_amount REAL NOT NULL,
-                spent_amount REAL DEFAULT 0,
-                FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-                FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-                UNIQUE(employee_id, category_id)
-            );
-
-            CREATE TABLE expenses (
-                id TEXT PRIMARY KEY,
-                benefit_id TEXT,
-                title TEXT NOT NULL,
-                description TEXT,
-                amount REAL NOT NULL,
-                date TEXT NOT NULL,
-                status TEXT CHECK(status IN ('Pending', 'Approved', 'Rejected')) NOT NULL,
-                FOREIGN KEY (benefit_id) REFERENCES benefits(id) ON DELETE CASCADE
-            );
-        """)
-
-        # 2. Insertar Categorías (AC-BE-03.3)
+        # 3. Poblar Categorías con Presupuestos en miles de euros (5.000 - 15.000 €)
+        print("[+] Insertando categorías de beneficios con presupuestos entre 5.000 y 15.000 EUR...")
         categories_data = [
-            ('cat-1', 'Comida', 'Ayuda para comidas diarias', 'utensils', '#3B82F6'),
-            ('cat-2', 'Transporte', 'Gastos de desplazamiento y transporte público', 'bus', '#10B981'),
-            ('cat-3', 'Guardería', 'Cheques guardería y cuidado infantil', 'baby', '#F59E0B'),
-            ('cat-4', 'Formación', 'Cursos, conferencias y libros técnicos', 'book-open', '#8B5CF6'),
-            ('cat-5', 'Salud', 'Seguro médico y bienestar físico', 'heart-pulse', '#EF4444'),
-            ('cat-6', 'Gimnasio', 'Cuotas de gimnasio y centros deportivos', 'dumbbell', '#EC4899')
+            Category(
+                id=1,
+                name="Comida",
+                description="Ayuda para comidas diarias y tickets restaurante",
+                icon="utensils",
+                color="#3B82F6",
+                budget=Decimal("15000.00"),
+                active=True,
+            ),
+            Category(
+                id=2,
+                name="Transporte",
+                description="Gastos de desplazamiento urbano y transporte público",
+                icon="bus",
+                color="#10B981",
+                budget=Decimal("12000.00"),
+                active=True,
+            ),
+            Category(
+                id=3,
+                name="Formación",
+                description="Cursos técnicos, certificaciones y libros",
+                icon="book-open",
+                color="#8B5CF6",
+                budget=Decimal("10000.00"),
+                active=True,
+            ),
+            Category(
+                id=4,
+                name="Salud",
+                description="Seguro médico privado y bienestar físico",
+                icon="heart-pulse",
+                color="#EF4444",
+                budget=Decimal("8000.00"),
+                active=True,
+            ),
+            Category(
+                id=5,
+                name="Guardería",
+                description="Cheques guardería y conciliación familiar",
+                icon="baby",
+                color="#F59E0B",
+                budget=Decimal("6000.00"),
+                active=True,
+            ),
+            Category(
+                id=6,
+                name="Gimnasio",
+                description="Cuotas de centros deportivos y suscripciones fitness",
+                icon="dumbbell",
+                color="#EC4899",
+                budget=Decimal("5000.00"),
+                active=True,
+            ),
         ]
-        cursor.executemany("INSERT INTO categories VALUES (?, ?, ?, ?, ?)", categories_data)
+        db.add_all(categories_data)
+        db.commit()
 
-        # 3. Insertar Empleados (AC-BE-03.2) - 10 empleados con presupuestos entre 500€ y 2500€
+        # 4. Poblar Empleados (SOLO departamentos: Tecnología, Marketing, RRHH, Ventas - SIN position)
+        print("[+] Registrando empleados en departamentos exclusivos (Tecnología, Marketing, RRHH, Ventas)...")
         employees_data = [
-            ('emp-1', 'Ana Gómez', 'ana.gomez@company.com', 'Engineering', 2500.0),
-            ('emp-2', 'Carlos Ruiz', 'carlos.ruiz@company.com', 'Product', 1800.0),
-            ('emp-3', 'Elena Torres', 'elena.torres@company.com', 'Marketing', 1200.0),
-            ('emp-4', 'David Martí', 'david.marti@company.com', 'Sales', 2000.0),
-            ('emp-5', 'Sofía Benítez', 'sofia.benitez@company.com', 'HR', 1500.0),
-            ('emp-6', 'Javier López', 'javier.lopez@company.com', 'Engineering', 2200.0),
-            ('emp-7', 'Lucía Ramos', 'lucia.ramos@company.com', 'Finance', 1000.0),
-            ('emp-8', 'Miguel Ángel Sanz', 'miguel.sanz@company.com', 'Design', 800.0),
-            ('emp-9', 'Carmen Vega', 'carmen.vega@company.com', 'Legal', 1400.0),
-            ('emp-10', 'Pablo Navarro', 'pablo.navarro@company.com', 'Support', 600.0)
+            Employee(
+                id=1,
+                first_name="Ana",
+                last_name="Gómez",
+                email="ana.gomez@company.com",
+                department="Tecnología",
+                max_budget=Decimal("2500.00"),
+            ),
+            Employee(
+                id=2,
+                first_name="Carlos",
+                last_name="Ruiz",
+                email="carlos.ruiz@company.com",
+                department="Tecnología",
+                max_budget=Decimal("1800.00"),
+            ),
+            Employee(
+                id=3,
+                first_name="Elena",
+                last_name="Torres",
+                email="elena.torres@company.com",
+                department="Marketing",
+                max_budget=Decimal("1200.00"),
+            ),
+            Employee(
+                id=4,
+                first_name="David",
+                last_name="Martí",
+                email="david.marti@company.com",
+                department="Ventas",
+                max_budget=Decimal("2000.00"),
+            ),
+            Employee(
+                id=5,
+                first_name="Sofía",
+                last_name="Benítez",
+                email="sofia.benitez@company.com",
+                department="RRHH",
+                max_budget=Decimal("1500.00"),
+            ),
+            Employee(
+                id=6,
+                first_name="Javier",
+                last_name="López",
+                email="javier.lopez@company.com",
+                department="Tecnología",
+                max_budget=Decimal("2200.00"),
+            ),
+            Employee(
+                id=7,
+                first_name="Lucía",
+                last_name="Ramos",
+                email="lucia.ramos@company.com",
+                department="Ventas",
+                max_budget=Decimal("1000.00"),
+            ),
+            Employee(
+                id=8,
+                first_name="Miguel Ángel",
+                last_name="Sanz",
+                email="miguel.sanz@company.com",
+                department="Marketing",
+                max_budget=Decimal("800.00"),
+            ),
+            Employee(
+                id=9,
+                first_name="Carmen",
+                last_name="Vega",
+                email="carmen.vega@company.com",
+                department="RRHH",
+                max_budget=Decimal("1400.00"),
+            ),
+            Employee(
+                id=10,
+                first_name="Pablo",
+                last_name="Navarro",
+                email="pablo.navarro@company.com",
+                department="Ventas",
+                max_budget=Decimal("600.00"),
+            ),
         ]
-        cursor.executemany("INSERT INTO employees VALUES (?, ?, ?, ?, ?)", employees_data)
+        db.add_all(employees_data)
+        db.commit()
 
-        # 4. Generar Asignaciones de Beneficios respetando max_budget (AC-BE-03.4)
-        # Relacionamos empleados con categorías específicas y importes que suman <= max_budget
+        # 5. Asignar Beneficios por Empleado respetando max_budget
+        print("[+] Creando asignaciones de beneficios individuales...")
         benefits_data = [
-            # Ana Gómez (Max: 2500) -> Verde / Rojo
-            ('ben-1', 'emp-1', 'cat-1', 1000.0, 0.0), # Comida
-            ('ben-2', 'emp-1', 'cat-4', 1200.0, 0.0), # Formación
-            # Carlos Ruiz (Max: 1800) -> Ámbar
-            ('ben-3', 'emp-2', 'cat-1', 800.0, 0.0),
-            ('ben-4', 'emp-2', 'cat-2', 900.0, 0.0),
-            # Elena Torres (Max: 1200) -> Verde
-            ('ben-5', 'emp-3', 'cat-2', 500.0, 0.0),
-            ('ben-6', 'emp-3', 'cat-3', 600.0, 0.0),
-            # David Martí (Max: 2000) -> Rojo
-            ('ben-7', 'emp-4', 'cat-1', 1000.0, 0.0),
-            ('ben-8', 'emp-4', 'cat-5', 900.0, 0.0),
-            # Sofía Benítez (Max: 1500) -> Ámbar
-            ('ben-9', 'emp-5', 'cat-4', 1000.0, 0.0),
-            # Javier López (Max: 2200) -> Verde
-            ('ben-10', 'emp-6', 'cat-1', 1000.0, 0.0),
-            # Lucía Ramos (Max: 1000) -> Rojo
-            ('ben-11', 'emp-7', 'cat-1', 900.0, 0.0),
-            # Miguel Ángel Sanz (Max: 800) -> Ámbar
-            ('ben-12', 'emp-8', 'cat-6', 700.0, 0.0),
-            # Carmen Vega (Max: 1400) -> Verde
-            ('ben-13', 'emp-9', 'cat-2', 1200.0, 0.0),
-            # Pablo Navarro (Max: 600) -> Rojo
-            ('ben-14', 'emp-10', 'cat-1', 550.0, 0.0)
+            # Ana Gómez (Max: 2500) - Tecnología
+            Benefit(id=1, employee_id=1, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")), # Comida
+            Benefit(id=2, employee_id=1, category_id=3, allocated_amount=Decimal("1200.00"), spent_amount=Decimal("0.00")), # Formación
+            # Carlos Ruiz (Max: 1800) - Tecnología
+            Benefit(id=3, employee_id=2, category_id=1, allocated_amount=Decimal("800.00"), spent_amount=Decimal("0.00")),  # Comida
+            Benefit(id=4, employee_id=2, category_id=2, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),  # Transporte
+            # Elena Torres (Max: 1200) - Marketing
+            Benefit(id=5, employee_id=3, category_id=2, allocated_amount=Decimal("500.00"), spent_amount=Decimal("0.00")),  # Transporte
+            Benefit(id=6, employee_id=3, category_id=5, allocated_amount=Decimal("600.00"), spent_amount=Decimal("0.00")),  # Guardería
+            # David Martí (Max: 2000) - Ventas
+            Benefit(id=7, employee_id=4, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")), # Comida
+            Benefit(id=8, employee_id=4, category_id=4, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),  # Salud
+            # Sofía Benítez (Max: 1500) - RRHH
+            Benefit(id=9, employee_id=5, category_id=3, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")), # Formación
+            # Javier López (Max: 2200) - Tecnología
+            Benefit(id=10, employee_id=6, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")),# Comida
+            # Lucía Ramos (Max: 1000) - Ventas
+            Benefit(id=11, employee_id=7, category_id=1, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")), # Comida
+            # Miguel Ángel Sanz (Max: 800) - Marketing
+            Benefit(id=12, employee_id=8, category_id=6, allocated_amount=Decimal("700.00"), spent_amount=Decimal("0.00")), # Gimnasio
+            # Carmen Vega (Max: 1400) - RRHH
+            Benefit(id=13, employee_id=9, category_id=2, allocated_amount=Decimal("1200.00"), spent_amount=Decimal("0.00")),# Transporte
+            # Pablo Navarro (Max: 600) - Ventas
+            Benefit(id=14, employee_id=10, category_id=1, allocated_amount=Decimal("550.00"), spent_amount=Decimal("0.00")),# Comida
         ]
-        cursor.executemany("INSERT INTO benefits VALUES (?, ?, ?, ?, ?)", benefits_data)
+        db.add_all(benefits_data)
+        db.commit()
 
-        # 5. Generar Gastos (~15 Aprobados, ~6 Pendientes, ~4 Rechazados) (AC-BE-03.5)
-        # Diseñados para activar estados Verde (<70%), Ámbar (70-90%) y Rojo (>90%)
+        # 6. Registrar Gastos con Estados (Expense)
+        print("[+] Registrando gastos historicos, pendientes y aprobados...")
+        now = datetime.now(timezone.utc)
         expenses_data = [
-            # ben-1 (Comida, Ana Gómez - Allocated: 1000) -> Gasto 600 (Aprobado) -> Verde (60%)
-            ('exp-1', 'ben-1', 'Restaurante El Escondite', 'Comida de equipo', 600.0, '2026-03-01', 'Approved'),
-            # ben-2 (Formación, Ana Gómez - Allocated: 1200) -> Gasto 1150 (Aprobado) -> Rojo (95.8%)
-            ('exp-2', 'ben-2', 'Curso Advanced React', 'Plataforma Udemy Business', 1150.0, '2026-03-05', 'Approved'),
-            
-            # ben-3 (Comida, Carlos Ruiz - Allocated: 800) -> Gasto 600 (Aprobado) -> Ámbar (75%)
-            ('exp-3', 'ben-3', 'Menú diario', 'Comidas mes de marzo', 600.0, '2026-03-02', 'Approved'),
-            # ben-4 (Transporte, Carlos Ruiz - Allocated: 900) -> Gasto 200 (Pendiente)
-            ('exp-4', 'ben-4', 'Abono Transporte', 'Recarga trimestral', 200.0, '2026-03-10', 'Pending'),
-            
-            # ben-5 (Transporte, Elena Torres - Allocated: 500) -> Gasto 200 (Aprobado) -> Verde (40%)
-            ('exp-5', 'ben-5', 'Metro y Autobús', 'Viajes oficina', 200.0, '2026-03-03', 'Approved'),
-            # ben-6 (Guardería, Elena Torres - Allocated: 600) -> Gasto 100 (Rechazado)
-            ('exp-6', 'ben-6', 'Escuela Infantil', 'Factura febrero', 100.0, '2026-03-04', 'Rejected'),
-            
-            # ben-7 (Comida, David Martí - Allocated: 1000) -> Gasto 950 (Aprobado) -> Rojo (95%)
-            ('exp-7', 'ben-7', 'Catering clientes', 'Reunión comercial', 950.0, '2026-03-06', 'Approved'),
-            # ben-8 (Salud, David Martí - Allocated: 900) -> Gasto 400 (Pendiente)
-            ('exp-8', 'ben-8', 'Fisioterapia', 'Tratamiento muscular', 400.0, '2026-03-08', 'Pending'),
+            # 1. Ana Gómez - Comida (Asignado: 1000) -> Gasto 250 -> Verde (25%)
+            Expense(employee_id=1, category_id=1, amount=Decimal("250.00"), description="Almuerzos de equipo marzo", status="APPROVED", expense_date=now - timedelta(days=20)),
+            # 2. Ana Gómez - Formación (Asignado: 1200) -> Gasto 1150 -> Rojo (95.8%)
+            Expense(employee_id=1, category_id=3, amount=Decimal("1150.00"), description="Certificacion Cloud Solutions Architect", status="APPROVED", expense_date=now - timedelta(days=18)),
 
-            # ben-9 (Formación, Sofía Benítez - Allocated: 1000) -> Gasto 800 (Aprobado) -> Ámbar (80%)
-            ('exp-9', 'ben-9', 'Certificación HR', 'SHRM Exam', 800.0, '2026-03-07', 'Approved'),
+            # 3. Carlos Ruiz - Comida (Asignado: 800) -> Gasto 450 -> Amarillo (56.2%)
+            Expense(employee_id=2, category_id=1, amount=Decimal("450.00"), description="Menus semanales cafeteria", status="APPROVED", expense_date=now - timedelta(days=15)),
+            # 4. Carlos Ruiz - Transporte (Asignado: 900) -> 200 Pendiente
+            Expense(employee_id=2, category_id=2, amount=Decimal("200.00"), description="Abono Transporte trimestral", status="PENDING", expense_date=now - timedelta(days=5)),
 
-            # ben-10 (Comida, Javier López - Allocated: 1000) -> Gasto 400 (Aprobado) -> Verde (40%)
-            ('exp-10', 'ben-10', 'Comidas de trabajo', 'Almuerzos', 400.0, '2026-03-09', 'Approved'),
+            # 5. Elena Torres - Transporte (Asignado: 500) -> Gasto 150 -> Verde (30%)
+            Expense(employee_id=3, category_id=2, amount=Decimal("150.00"), description="Bono mensual metro y cercanias", status="APPROVED", expense_date=now - timedelta(days=12)),
+            # 6. Elena Torres - Guardería (Asignado: 600) -> Gasto 100 Rechazado
+            Expense(employee_id=3, category_id=5, amount=Decimal("100.00"), description="Material escolar no subvencionado", status="REJECTED", expense_date=now - timedelta(days=10)),
 
-            # ben-11 (Comida, Lucía Ramos - Allocated: 900) -> Gasto 850 (Aprobado) -> Rojo (94.4%)
-            ('exp-11', 'ben-11', 'Restaurante Centro', 'Comidas de gerencia', 850.0, '2026-03-10', 'Approved'),
+            # 7. David Martí - Comida (Asignado: 1000) -> Gasto 850 -> Rojo (85%)
+            Expense(employee_id=4, category_id=1, amount=Decimal("850.00"), description="Catering almuerzo clientes corporativos", status="APPROVED", expense_date=now - timedelta(days=8)),
+            # 8. David Martí - Salud (Asignado: 900) -> Gasto 350 Pendiente
+            Expense(employee_id=4, category_id=4, amount=Decimal("350.00"), description="Rehabilitacion y fisioterapia postural", status="PENDING", expense_date=now - timedelta(days=4)),
 
-            # ben-12 (Gimnasio, Miguel Ángel Sanz - Allocated: 700) -> Gasto 560 (Aprobado) -> Ámbar (80%)
-            ('exp-12', 'ben-12', 'Cuota Gimnasio', 'Trimestre GoFit', 560.0, '2026-03-11', 'Approved'),
+            # 9. Sofía Benítez - Formación (Asignado: 1000) -> Gasto 500 -> Amarillo (50%)
+            Expense(employee_id=5, category_id=3, amount=Decimal("500.00"), description="Seminario People Analytics & HR Trends", status="APPROVED", expense_date=now - timedelta(days=7)),
 
-            # ben-13 (Transporte, Carmen Vega - Allocated: 1200) -> Gasto 500 (Aprobado) -> Verde (41.6%)
-            ('exp-13', 'ben-13', 'Parking oficina', 'Abono mensual', 500.0, '2026-03-12', 'Approved'),
+            # 10. Javier López - Comida (Asignado: 1000) -> Gasto 300 -> Verde (30%)
+            Expense(employee_id=6, category_id=1, amount=Decimal("300.00"), description="Comidas de trabajo oficina", status="APPROVED", expense_date=now - timedelta(days=6)),
 
-            # ben-14 (Comida, Pablo Navarro - Allocated: 550) -> Gasto 520 (Aprobado) -> Rojo (94.5%)
-            ('exp-14', 'ben-14', 'Menús diarios', 'Restaurante cercano', 520.0, '2026-03-13', 'Approved'),
+            # 11. Lucía Ramos - Comida (Asignado: 900) -> Gasto 750 -> Rojo (83.3%)
+            Expense(employee_id=7, category_id=1, amount=Decimal("750.00"), description="Restaurante auditoria anual", status="APPROVED", expense_date=now - timedelta(days=5)),
 
-            # Gastos adicionales en estado Pendiente (6 en total requeridos)
-            ('exp-15', 'ben-1', 'Cena empresa', 'Restaurante La Lonja', 150.0, '2026-03-14', 'Pending'),
-            ('exp-16', 'ben-3', 'Parking cliente', 'Visita rápida', 25.0, '2026-03-14', 'Pending'),
-            ('exp-17', 'ben-5', 'Taxi urgente', 'Desplazamiento aeropuerto', 45.0, '2026-03-15', 'Pending'),
-            ('exp-18', 'ben-9', 'Libro técnico', 'Clean Architecture', 40.0, '2026-03-15', 'Pending'),
-            ('exp-19', 'ben-10', 'Cafetería', 'Reunión informal', 30.0, '2026-03-16', 'Pending'),
+            # 12. Miguel Ángel Sanz - Gimnasio (Asignado: 700) -> Gasto 350 -> Amarillo (50%)
+            Expense(employee_id=8, category_id=6, amount=Decimal("350.00"), description="Cuota semestral gimnasio GoFit", status="APPROVED", expense_date=now - timedelta(days=9)),
 
-            # Gastos adicionales en estado Rechazado (4 en total requeridos)
-            ('exp-20', 'ben-2', 'Compra material', 'Teclado mecánico', 120.0, '2026-03-01', 'Rejected'),
-            ('exp-21', 'ben-7', 'Cena personal', 'Ocio fin de semana', 85.0, '2026-03-02', 'Rejected'),
-            ('exp-22', 'ben-11', 'Viaje vacacional', 'Billete tren privado', 300.0, '2026-03-03', 'Rejected'),
-            ('exp-23', 'ben-13', 'Multa tráfico', 'Exceso velocidad', 60.0, '2026-03-04', 'Rejected')
+            # 13. Carmen Vega - Transporte (Asignado: 1200) -> Gasto 380 -> Verde (31.6%)
+            Expense(employee_id=9, category_id=2, amount=Decimal("380.00"), description="Parking mensual sede corporativa", status="APPROVED", expense_date=now - timedelta(days=11)),
+
+            # 14. Pablo Navarro - Comida (Asignado: 550) -> Gasto 480 -> Rojo (87.2%)
+            Expense(employee_id=10, category_id=1, amount=Decimal("480.00"), description="Restaurante menu del dia turnos", status="APPROVED", expense_date=now - timedelta(days=3)),
+
+            # Gastos Pendientes adicionales
+            Expense(employee_id=1, category_id=1, amount=Decimal("120.00"), description="Cena de bienvenida nuevos ingresos", status="PENDING", expense_date=now - timedelta(days=2)),
+            Expense(employee_id=3, category_id=2, amount=Decimal("45.00"), description="Taxi de urgencia estacion", status="PENDING", expense_date=now - timedelta(days=1)),
+            Expense(employee_id=5, category_id=3, amount=Decimal("40.00"), description="Libro Clean Architecture", status="PENDING", expense_date=now - timedelta(hours=14)),
+            Expense(employee_id=6, category_id=1, amount=Decimal("35.00"), description="Cafe reunion de sprint", status="PENDING", expense_date=now - timedelta(hours=6)),
+
+            # Gastos Rechazados adicionales
+            Expense(employee_id=1, category_id=3, amount=Decimal("180.00"), description="Compra periferico ergonomico", status="REJECTED", expense_date=now - timedelta(days=14)),
+            Expense(employee_id=4, category_id=1, amount=Decimal("95.00"), description="Ocio personal fin de semana", status="REJECTED", expense_date=now - timedelta(days=13)),
+            Expense(employee_id=7, category_id=1, amount=Decimal("250.00"), description="Billete de tren viaje privado", status="REJECTED", expense_date=now - timedelta(days=12)),
         ]
-        
-        cursor.executemany("INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?, ?)", expenses_data)
+        db.add_all(expenses_data)
+        db.commit()
 
-        # 6. Calcular y poblar los acumuladores `spent_amount` basados en gastos 'Approved' (AC-BE-03.6)
-        cursor.execute("""
-            UPDATE benefits
-            SET spent_amount = COALESCE((
-                SELECT SUM(amount) 
-                FROM expenses 
-                WHERE expenses.benefit_id = benefits.id 
-                  AND expenses.status = 'Approved'
-            ), 0.0);
-        """)
+        # 7. Sincronizar spent_amount en Benefits basándose en gastos 'APPROVED'
+        print("[*] Sincronizando acumuladores de gasto en beneficios...")
+        benefits = db.query(Benefit).all()
+        for b in benefits:
+            approved_total = (
+                db.query(Expense)
+                .filter(
+                    Expense.employee_id == b.employee_id,
+                    Expense.category_id == b.category_id,
+                    Expense.status == "APPROVED"
+                )
+                .all()
+            )
+            b.spent_amount = sum((exp.amount for exp in approved_total), Decimal("0.00"))
+        db.commit()
 
-        # Confirmar transacción
-        conn.commit()
-        print("✅ Base de datos poblada exitosamente con datos de prueba.")
-        print("📊 Semáforos listos para evaluación (Verde <70%, Ámbar 70-90%, Rojo >90%).")
+        # 8. Resumen final de la base de datos
+        emp_count = db.query(Employee).count()
+        cat_count = db.query(Category).count()
+        ben_count = db.query(Benefit).count()
+        exp_count = db.query(Expense).count()
+        approved_exp = db.query(Expense).filter(Expense.status == "APPROVED").count()
+        pending_exp = db.query(Expense).filter(Expense.status == "PENDING").count()
+        rejected_exp = db.query(Expense).filter(Expense.status == "REJECTED").count()
+        total_spent = sum((e.amount for e in db.query(Expense).filter(Expense.status == "APPROVED").all()), Decimal("0.00"))
+
+        print("\n" + "=" * 64)
+        print("[OK] BASE DE DATOS POBLADA EXITOSAMENTE (db.sqlite3)")
+        print("=" * 64)
+        print(f"[*] Presupuesto Global    : {company.global_budget:,.2f} EUR")
+        print(f"[*] Categorías Catálogo   : {cat_count} (Presupuestos entre 5.000 y 15.000 EUR)")
+        for cat in db.query(Category).all():
+            print(f"    - {cat.name:12}: {cat.budget:,.2f} EUR")
+        print(f"[*] Empleados Activos     : {emp_count}")
+        dept_summary = {}
+        for emp in db.query(Employee).all():
+            dept_summary[emp.department] = dept_summary.get(emp.department, 0) + 1
+        for dept, count in dept_summary.items():
+            print(f"    - {dept:12}: {count} empleados")
+        print(f"[*] Beneficios Asignados  : {ben_count}")
+        print(f"[*] Total Gastos          : {exp_count} (Aprobados: {approved_exp}, Pendientes: {pending_exp}, Rechazados: {rejected_exp})")
+        print(f"[*] Gasto Total Ejecutado : {total_spent:,.2f} EUR ({float(total_spent / company.global_budget * 100):.1f}% del presupuesto)")
+        print("[*] Semáforos activados   : Verde (<=33%), Amarillo (33-66%), Rojo (>66%)")
+        print("=" * 64 + "\n")
 
     except Exception as e:
-        conn.rollback()
-        print(f"❌ Error durante el seeding de la base de datos: {e}")
+        db.rollback()
+        print(f"[!] Error durante el seeding de la base de datos: {e}")
         raise e
     finally:
-        conn.close()
+        db.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     seed_database()

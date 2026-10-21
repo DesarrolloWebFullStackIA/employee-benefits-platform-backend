@@ -176,7 +176,7 @@ def _build_threshold_alerts(
     employees: List[Dict[str, Any]],
     currency: str = "EUR"
 ) -> Tuple[List[AlertBlock], List[str], List[str]]:
-    """Generates alerts for entities nearing or exceeding 85% of budget cap."""
+    """Generates alerts for entities according to semaphore thresholds (Green <=33%, Amber 33-66%, Red >66%)."""
     alerts: List[AlertBlock] = []
     underutilized: List[str] = []
     saturated: List[str] = []
@@ -188,9 +188,8 @@ def _build_threshold_alerts(
         c_spent = float(cat.get("spent") or 0.0)
         c_assigned = float(cat.get("assigned") or 0.0)
 
-        if pct >= 85.0:
+        if pct > 66.0:
             saturated.append(name)
-            severity = "critical" if pct >= 95.0 else "warning"
             metric_str = f"{pct:.0f}% ({_format_currency(c_spent, currency)} / {_format_currency(c_assigned, currency)})"
             alerts.append(
                 AlertBlock(
@@ -199,10 +198,22 @@ def _build_threshold_alerts(
                     name=name,
                     percentage=pct,
                     metric=metric_str,
-                    severity=severity
+                    severity="critical"
                 )
             )
-        elif pct <= 45.0:
+        elif pct > 33.0:
+            metric_str = f"{pct:.0f}% ({_format_currency(c_spent, currency)} / {_format_currency(c_assigned, currency)})"
+            alerts.append(
+                AlertBlock(
+                    id=f"alert-cat-{cat.get('id', name)}",
+                    type="category",
+                    name=name,
+                    percentage=pct,
+                    metric=metric_str,
+                    severity="warning"
+                )
+            )
+        else:
             underutilized.append(name)
 
     # Employee alerts
@@ -212,8 +223,7 @@ def _build_threshold_alerts(
         e_spent = float(emp.get("spent") or 0.0)
         e_assigned = float(emp.get("assigned") or 0.0)
 
-        if pct >= 85.0:
-            severity = "critical" if pct >= 95.0 else "warning"
+        if pct > 66.0:
             metric_str = f"{pct:.0f}% ({_format_currency(e_spent, currency)} / {_format_currency(e_assigned, currency)})"
             alerts.append(
                 AlertBlock(
@@ -222,7 +232,19 @@ def _build_threshold_alerts(
                     name=name,
                     percentage=pct,
                     metric=metric_str,
-                    severity=severity
+                    severity="critical"
+                )
+            )
+        elif pct > 33.0:
+            metric_str = f"{pct:.0f}% ({_format_currency(e_spent, currency)} / {_format_currency(e_assigned, currency)})"
+            alerts.append(
+                AlertBlock(
+                    id=f"alert-emp-{emp.get('id', name)}",
+                    type="employee",
+                    name=name,
+                    percentage=pct,
+                    metric=metric_str,
+                    severity="warning"
                 )
             )
 
@@ -243,10 +265,10 @@ def _generate_local_fallback_diagnosis(
     Deterministic rule-based reasoning engine ensuring 100% operational uptime
     during offline mode or API quota limits (AC-09.3).
     """
-    if ratio < 75.0:
+    if ratio <= 33.0:
         health_status = "optimal"
         status_label = "Óptima"
-    elif ratio < 90.0:
+    elif ratio <= 66.0:
         health_status = "warning"
         status_label = "Alerta Preventiva"
     else:
@@ -328,11 +350,11 @@ async def generate_budget_insights(
                 f"- Presupuesto Total / Tope Global: {_format_currency(limit, currency)}\n"
                 f"- Consumo Ejecutado: {_format_currency(spent, currency)} ({ratio:.1f}% del tope asignado)\n"
                 f"- Saldo Remanente Disponible: {_format_currency(available, currency)}\n"
-                f"- Categorías saturadas (>85% consumo): {', '.join(saturated) if saturated else 'Ninguna'}\n"
-                f"- Categorías infrautilizadas (<45% consumo): {', '.join(underutilized) if underutilized else 'Ninguna'}\n"
+                f"- Categorías en zona roja (>66% consumo): {', '.join(saturated) if saturated else 'Ninguna'}\n"
+                f"- Categorías en zona verde (<=33% consumo): {', '.join(underutilized) if underutilized else 'Ninguna'}\n"
                 f"- Cantidad de alertas activas: {len(alerts)}\n\n"
                 "Genera un diagnóstico financiero estructurado en español profesional, directo y ejecutivo:\n"
-                "1. health_status: 'optimal' si ratio < 75%, 'warning' si 75% <= ratio < 90%, 'critical' si ratio >= 90%.\n"
+                "1. health_status: 'optimal' si ratio <= 33%, 'warning' si 33% < ratio <= 66%, 'critical' si ratio > 66%.\n"
                 "2. health_summary: Un párrafo conciso evaluando la salud presupuestaria para el cuadro de mandos de RRHH.\n"
                 "3. recommendation_summary: Recomendación estratégica de rebalanceo entre partidas infrautilizadas y saturadas o ajuste de topes.\n"
                 "4. underutilized_categories: lista de nombres de categorías con bajo consumo.\n"
@@ -348,7 +370,7 @@ async def generate_budget_insights(
             diag: StructuredGenkitDiagnosis = res.output
             if diag:
                 health = HealthBlock(
-                    status=diag.health_status or ("optimal" if ratio < 75 else "warning" if ratio < 90 else "critical"),
+                    status=diag.health_status or ("optimal" if ratio <= 33 else "warning" if ratio <= 66 else "critical"),
                     spent=spent,
                     limit=limit,
                     available=available,
