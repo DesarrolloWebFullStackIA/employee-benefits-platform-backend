@@ -44,7 +44,7 @@ def _format_employee_dict(employee: Employee) -> Dict[str, Any]:
         "last_name": employee.last_name,
         "email": employee.email,
         "department": employee.department,
-        "position": employee.position,
+        "position": getattr(employee, "position", None),
         "max_budget": employee.max_budget,
         "total_allocated": metrics["total_allocated"],
         "total_spent": metrics["total_spent"],
@@ -130,7 +130,7 @@ def get_employee_by_id(db: Session, employee_id: int) -> Dict[str, Any]:
         "last_name": employee.last_name,
         "email": employee.email,
         "department": employee.department,
-        "position": employee.position,
+        "position": getattr(employee, "position", None),
         "max_budget": employee.max_budget,
         "total_allocated": metrics["total_allocated"],
         "total_spent": metrics["total_spent"],
@@ -156,7 +156,6 @@ def create_employee(db: Session, employee_in: EmployeeCreate) -> Dict[str, Any]:
         last_name=employee_in.last_name,
         email=employee_in.email,
         department=employee_in.department,
-        position=employee_in.position,
         max_budget=employee_in.max_budget,
     )
     db.add(new_emp)
