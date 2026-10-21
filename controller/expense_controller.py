@@ -22,7 +22,7 @@ def _to_dict(expense: Expense) -> dict:
         "employee": {
             "id": expense.employee.id,
             "name": f"{expense.employee.first_name} {expense.employee.last_name}",
-            "role": expense.employee.position,
+            "role": getattr(expense.employee, "position", None) or "Empleado",
         },
         "category": expense.category.name,
         "concept": expense.concept,
