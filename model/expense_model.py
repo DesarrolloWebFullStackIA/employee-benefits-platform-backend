@@ -23,7 +23,7 @@ class Expense(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     concept = Column(String(255), nullable=False)
     date = Column(Date, nullable=False)
-    status = Column(String(20), nullable=False, default="pending")
+    status = Column(String(20), nullable=False, default="PENDING")
     receipt_type = Column(String(10), nullable=True)
     receipt_url = Column(String(500), nullable=True)
     rejection_reason = Column(String(500), nullable=True)

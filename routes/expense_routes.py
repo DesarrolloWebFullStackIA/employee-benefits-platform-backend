@@ -17,7 +17,7 @@ class RejectBody(BaseModel):
 @router.get("", status_code=status.HTTP_200_OK, summary="List expenses")
 @router.get("/", status_code=status.HTTP_200_OK, include_in_schema=False)
 def list_expenses(
-    status: Optional[str] = Query(None, pattern="^(pending|approved|rejected)$"),
+    status: Optional[str] = Query(None, pattern="^(?i)(pending|approved|rejected)$"),
     employee_id: Optional[int] = None,
     category_id: Optional[int] = None,
     search: Optional[str] = None,

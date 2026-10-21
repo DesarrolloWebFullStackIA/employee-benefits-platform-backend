@@ -46,7 +46,7 @@ def seed_database():
         print("[+] Configurando presupuesto corporativo global...")
         company = Company(
             id=1,
-            global_budget=Decimal("45000.00")
+            global_budget=Decimal("75000.00")
         )
         db.add(company)
         db.commit()
@@ -235,53 +235,53 @@ def seed_database():
         now = datetime.now(timezone.utc)
         expenses_data = [
             # 1. Ana Gómez - Comida (Asignado: 1000) -> Gasto 250 -> Verde (25%)
-            Expense(employee_id=1, category_id=1, amount=Decimal("250.00"), concept="Almuerzos de equipo marzo", status="approved", date=(now - timedelta(days=20)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=1, category_id=1, amount=Decimal("250.00"), concept="Almuerzos de equipo marzo", status="APPROVED", date=(now - timedelta(days=20)).date(), receipt_type="pdf", receipt_url="#"),
             # 2. Ana Gómez - Formación (Asignado: 1200) -> Gasto 1150 -> Rojo (95.8%)
-            Expense(employee_id=1, category_id=3, amount=Decimal("1150.00"), concept="Certificacion Cloud Solutions Architect", status="approved", date=(now - timedelta(days=18)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=1, category_id=3, amount=Decimal("1150.00"), concept="Certificacion Cloud Solutions Architect", status="APPROVED", date=(now - timedelta(days=18)).date(), receipt_type="pdf", receipt_url="#"),
 
             # 3. Carlos Ruiz - Comida (Asignado: 800) -> Gasto 450 -> Amarillo (56.2%)
-            Expense(employee_id=2, category_id=1, amount=Decimal("450.00"), concept="Menus semanales cafeteria", status="approved", date=(now - timedelta(days=15)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=2, category_id=1, amount=Decimal("450.00"), concept="Menus semanales cafeteria", status="APPROVED", date=(now - timedelta(days=15)).date(), receipt_type="pdf", receipt_url="#"),
             # 4. Carlos Ruiz - Transporte (Asignado: 900) -> 200 Pendiente
-            Expense(employee_id=2, category_id=2, amount=Decimal("200.00"), concept="Abono Transporte trimestral", status="pending", date=(now - timedelta(days=5)).date(), receipt_type="image", receipt_url="#"),
+            Expense(employee_id=2, category_id=2, amount=Decimal("200.00"), concept="Abono Transporte trimestral", status="PENDING", date=(now - timedelta(days=5)).date(), receipt_type="image", receipt_url="#"),
 
             # 5. Elena Torres - Transporte (Asignado: 500) -> Gasto 150 -> Verde (30%)
-            Expense(employee_id=3, category_id=2, amount=Decimal("150.00"), concept="Bono mensual metro y cercanias", status="approved", date=(now - timedelta(days=12)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=3, category_id=2, amount=Decimal("150.00"), concept="Bono mensual metro y cercanias", status="APPROVED", date=(now - timedelta(days=12)).date(), receipt_type="pdf", receipt_url="#"),
             # 6. Elena Torres - Guardería (Asignado: 600) -> Gasto 100 Rechazado
-            Expense(employee_id=3, category_id=5, amount=Decimal("100.00"), concept="Material escolar no subvencionado", status="rejected", date=(now - timedelta(days=10)).date(), receipt_type="pdf", receipt_url="#", rejection_reason="Gasto no subvencionable según política"),
+            Expense(employee_id=3, category_id=5, amount=Decimal("100.00"), concept="Material escolar no subvencionado", status="REJECTED", date=(now - timedelta(days=10)).date(), receipt_type="pdf", receipt_url="#", rejection_reason="Gasto no subvencionable según política"),
 
             # 7. David Martí - Comida (Asignado: 1000) -> Gasto 850 -> Rojo (85%)
-            Expense(employee_id=4, category_id=1, amount=Decimal("850.00"), concept="Catering almuerzo clientes corporativos", status="approved", date=(now - timedelta(days=8)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=4, category_id=1, amount=Decimal("850.00"), concept="Catering almuerzo clientes corporativos", status="APPROVED", date=(now - timedelta(days=8)).date(), receipt_type="pdf", receipt_url="#"),
             # 8. David Martí - Salud (Asignado: 900) -> Gasto 350 Pendiente
-            Expense(employee_id=4, category_id=4, amount=Decimal("350.00"), concept="Rehabilitacion y fisioterapia postural", status="pending", date=(now - timedelta(days=4)).date(), receipt_type="image", receipt_url="#"),
+            Expense(employee_id=4, category_id=4, amount=Decimal("350.00"), concept="Rehabilitacion y fisioterapia postural", status="PENDING", date=(now - timedelta(days=4)).date(), receipt_type="image", receipt_url="#"),
 
             # 9. Sofía Benítez - Formación (Asignado: 1000) -> Gasto 500 -> Amarillo (50%)
-            Expense(employee_id=5, category_id=3, amount=Decimal("500.00"), concept="Seminario People Analytics & HR Trends", status="approved", date=(now - timedelta(days=7)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=5, category_id=3, amount=Decimal("500.00"), concept="Seminario People Analytics & HR Trends", status="APPROVED", date=(now - timedelta(days=7)).date(), receipt_type="pdf", receipt_url="#"),
 
             # 10. Javier López - Comida (Asignado: 1000) -> Gasto 300 -> Verde (30%)
-            Expense(employee_id=6, category_id=1, amount=Decimal("300.00"), concept="Comidas de trabajo oficina", status="approved", date=(now - timedelta(days=6)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=6, category_id=1, amount=Decimal("300.00"), concept="Comidas de trabajo oficina", status="APPROVED", date=(now - timedelta(days=6)).date(), receipt_type="pdf", receipt_url="#"),
 
             # 11. Lucía Ramos - Comida (Asignado: 900) -> Gasto 750 -> Rojo (83.3%)
-            Expense(employee_id=7, category_id=1, amount=Decimal("750.00"), concept="Restaurante auditoria anual", status="approved", date=(now - timedelta(days=5)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=7, category_id=1, amount=Decimal("750.00"), concept="Restaurante auditoria anual", status="APPROVED", date=(now - timedelta(days=5)).date(), receipt_type="pdf", receipt_url="#"),
 
             # 12. Miguel Ángel Sanz - Gimnasio (Asignado: 700) -> Gasto 350 -> Amarillo (50%)
-            Expense(employee_id=8, category_id=6, amount=Decimal("350.00"), concept="Cuota semestral gimnasio GoFit", status="approved", date=(now - timedelta(days=9)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=8, category_id=6, amount=Decimal("350.00"), concept="Cuota semestral gimnasio GoFit", status="APPROVED", date=(now - timedelta(days=9)).date(), receipt_type="pdf", receipt_url="#"),
 
             # 13. Carmen Vega - Transporte (Asignado: 1200) -> Gasto 380 -> Verde (31.6%)
-            Expense(employee_id=9, category_id=2, amount=Decimal("380.00"), concept="Parking mensual sede corporativa", status="approved", date=(now - timedelta(days=11)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=9, category_id=2, amount=Decimal("380.00"), concept="Parking mensual sede corporativa", status="APPROVED", date=(now - timedelta(days=11)).date(), receipt_type="pdf", receipt_url="#"),
 
             # 14. Pablo Navarro - Comida (Asignado: 550) -> Gasto 480 -> Rojo (87.2%)
-            Expense(employee_id=10, category_id=1, amount=Decimal("480.00"), concept="Restaurante menu del dia turnos", status="approved", date=(now - timedelta(days=3)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=10, category_id=1, amount=Decimal("480.00"), concept="Restaurante menu del dia turnos", status="APPROVED", date=(now - timedelta(days=3)).date(), receipt_type="pdf", receipt_url="#"),
 
             # Gastos Pendientes adicionales
-            Expense(employee_id=1, category_id=1, amount=Decimal("120.00"), concept="Cena de bienvenida nuevos ingresos", status="pending", date=(now - timedelta(days=2)).date(), receipt_type="pdf", receipt_url="#"),
-            Expense(employee_id=3, category_id=2, amount=Decimal("45.00"), concept="Taxi de urgencia estacion", status="pending", date=(now - timedelta(days=1)).date(), receipt_type="image", receipt_url="#"),
-            Expense(employee_id=5, category_id=3, amount=Decimal("40.00"), concept="Libro Clean Architecture", status="pending", date=(now - timedelta(hours=14)).date(), receipt_type="pdf", receipt_url="#"),
-            Expense(employee_id=6, category_id=1, amount=Decimal("35.00"), concept="Cafe reunion de sprint", status="pending", date=(now - timedelta(hours=6)).date(), receipt_type="image", receipt_url="#"),
+            Expense(employee_id=1, category_id=1, amount=Decimal("120.00"), concept="Cena de bienvenida nuevos ingresos", status="PENDING", date=(now - timedelta(days=2)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=3, category_id=2, amount=Decimal("45.00"), concept="Taxi de urgencia estacion", status="PENDING", date=(now - timedelta(days=1)).date(), receipt_type="image", receipt_url="#"),
+            Expense(employee_id=5, category_id=3, amount=Decimal("40.00"), concept="Libro Clean Architecture", status="PENDING", date=(now - timedelta(hours=14)).date(), receipt_type="pdf", receipt_url="#"),
+            Expense(employee_id=6, category_id=1, amount=Decimal("35.00"), concept="Cafe reunion de sprint", status="PENDING", date=(now - timedelta(hours=6)).date(), receipt_type="image", receipt_url="#"),
 
             # Gastos Rechazados adicionales
-            Expense(employee_id=1, category_id=3, amount=Decimal("180.00"), concept="Compra periferico ergonomico", status="rejected", date=(now - timedelta(days=14)).date(), receipt_type="pdf", receipt_url="#", rejection_reason="Periférico no incluido en catálogo de formación"),
-            Expense(employee_id=4, category_id=1, amount=Decimal("95.00"), concept="Ocio personal fin de semana", status="rejected", date=(now - timedelta(days=13)).date(), receipt_type="image", receipt_url="#", rejection_reason="Gasto en día no laborable"),
-            Expense(employee_id=7, category_id=1, amount=Decimal("250.00"), concept="Billete de tren viaje privado", status="rejected", date=(now - timedelta(days=12)).date(), receipt_type="pdf", receipt_url="#", rejection_reason="Viaje de índole personal sin justificación corporativa"),
+            Expense(employee_id=1, category_id=3, amount=Decimal("180.00"), concept="Compra periferico ergonomico", status="REJECTED", date=(now - timedelta(days=14)).date(), receipt_type="pdf", receipt_url="#", rejection_reason="Periférico no incluido en catálogo de formación"),
+            Expense(employee_id=4, category_id=1, amount=Decimal("95.00"), concept="Ocio personal fin de semana", status="REJECTED", date=(now - timedelta(days=13)).date(), receipt_type="image", receipt_url="#", rejection_reason="Gasto en día no laborable"),
+            Expense(employee_id=7, category_id=1, amount=Decimal("250.00"), concept="Billete de tren viaje privado", status="REJECTED", date=(now - timedelta(days=12)).date(), receipt_type="pdf", receipt_url="#", rejection_reason="Viaje de índole personal sin justificación corporativa"),
         ]
         db.add_all(expenses_data)
         db.commit()
