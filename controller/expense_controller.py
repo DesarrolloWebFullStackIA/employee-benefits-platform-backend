@@ -12,7 +12,7 @@ from model.employee_model import Employee
 from model.expense_model import Expense
 from services.cloudinary_service import upload_receipt
 
-ACTIVE_STATUSES = ("pending", "approved")
+ACTIVE_STATUSES = ("PENDING", "APPROVED", "pending", "approved")
 
 
 def _to_dict(expense: Expense) -> dict:
@@ -29,7 +29,7 @@ def _to_dict(expense: Expense) -> dict:
         "amount": float(expense.amount),
         "receiptType": expense.receipt_type or "pdf",
         "receiptUrl": expense.receipt_url or "#",
-        "status": expense.status,
+        "status": (getattr(expense, "status", None) or "PENDING").lower(),
         "rejectionReason": expense.rejection_reason,
     }
 
@@ -45,7 +45,7 @@ def _committed_amount(db: Session, employee_id: int, category_id: int, exclude_i
     query = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
         Expense.employee_id == employee_id,
         Expense.category_id == category_id,
-        Expense.status.in_(ACTIVE_STATUSES),
+        func.upper(Expense.status).in_(["PENDING", "APPROVED"]),
     )
     if exclude_id is not None:
         query = query.filter(Expense.id != exclude_id)
@@ -62,7 +62,7 @@ def _available(db: Session, employee_id: int, category_id: int) -> Decimal:
 def get_expenses(db: Session, status: str, employee_id: int, category_id: int, search: str):
     query = db.query(Expense).options(joinedload(Expense.employee), joinedload(Expense.category))
     if status:
-        query = query.filter(Expense.status == status)
+        query = query.filter(func.upper(Expense.status) == status.upper())
     if employee_id:
         query = query.filter(Expense.employee_id == employee_id)
     if category_id:
@@ -105,7 +105,7 @@ def create_expense(db: Session, employee_id: int, category_id: int, concept: str
             concept=concept.strip(),
             amount=amount,
             date=date,
-            status="pending",
+            status="PENDING",
             receipt_url=receipt_url,
             receipt_type="image" if receipt and (receipt.content_type or "").startswith("image/") else "pdf",
         )
@@ -132,7 +132,7 @@ def update_expense(db: Session, expense_id: int, employee_id: int, category_id: 
         expense = db.query(Expense).filter(Expense.id == expense_id).with_for_update().first()
         if expense is None:
             raise HTTPException(404, "Gasto no encontrado.")
-        if expense.status != "pending":
+        if (expense.status or "").upper() != "PENDING":
             raise HTTPException(409, "Solo se pueden editar gastos pendientes.")
 
         benefit = _get_benefit(db, employee_id, category_id, lock=True)
@@ -165,7 +165,7 @@ def approve_expense(db: Session, expense_id: int):
         expense = db.query(Expense).filter(Expense.id == expense_id).with_for_update().first()
         if expense is None:
             raise HTTPException(404, "Gasto no encontrado.")
-        if expense.status != "pending":
+        if (expense.status or "").upper() != "PENDING":
             raise HTTPException(409, "Solo se pueden aprobar gastos pendientes.")
 
         benefit = _get_benefit(db, expense.employee_id, expense.category_id, lock=True)
@@ -176,7 +176,7 @@ def approve_expense(db: Session, expense_id: int):
         if others + Decimal(str(expense.amount)) > Decimal(str(benefit.allocated_amount)):
             raise HTTPException(409, "Saldo insuficiente para aprobar este gasto.")
 
-        expense.status = "approved"
+        expense.status = "APPROVED"
         db.commit()
     except HTTPException:
         db.rollback()
@@ -196,10 +196,10 @@ def reject_expense(db: Session, expense_id: int, reason: str):
         expense = db.query(Expense).filter(Expense.id == expense_id).with_for_update().first()
         if expense is None:
             raise HTTPException(404, "Gasto no encontrado.")
-        if expense.status != "pending":
+        if (expense.status or "").upper() != "PENDING":
             raise HTTPException(409, "Solo se pueden rechazar gastos pendientes.")
 
-        expense.status = "rejected"
+        expense.status = "REJECTED"
         expense.rejection_reason = reason.strip()
         db.commit()
     except HTTPException:
@@ -227,7 +227,7 @@ def delete_expense(db: Session, expense_id: int):
         if expense is None:
             raise HTTPException(404, "Gasto no encontrado.")
 
-        if expense.status == "approved":
+        if (expense.status or "").upper() == "APPROVED":
             raise HTTPException(409, "No se puede eliminar un gasto aprobado.")
 
         db.delete(expense)
