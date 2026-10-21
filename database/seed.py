@@ -8,7 +8,7 @@ Usage:
 """
 
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -35,7 +35,7 @@ from model.expense_model import Expense
 def seed_database():
     print("[*] Iniciando el proceso de seeding de la base de datos...")
 
-    # 1. Recrear el esquema completo para aplicar actualizaciones de modelos (como Category.budget)
+    # 1. Recrear el esquema completo para aplicar actualizaciones de modelos
     print("[*] Recreando esquema de base de datos via SQLAlchemy metadata...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -51,8 +51,8 @@ def seed_database():
         db.add(company)
         db.commit()
 
-        # 3. Poblar Categorías del Catálogo con Límite Sugerido (Category)
-        print("[+] Insertando categorías de beneficios con límites sugeridos...")
+        # 3. Poblar Categorías con Presupuestos en miles de euros (5.000 - 15.000 €)
+        print("[+] Insertando categorías de beneficios con presupuestos entre 5.000 y 15.000 EUR...")
         categories_data = [
             Category(
                 id=1,
@@ -60,7 +60,7 @@ def seed_database():
                 description="Ayuda para comidas diarias y tickets restaurante",
                 icon="utensils",
                 color="#3B82F6",
-                budget=Decimal("150.00"),
+                budget=Decimal("15000.00"),
                 active=True,
             ),
             Category(
@@ -69,34 +69,34 @@ def seed_database():
                 description="Gastos de desplazamiento urbano y transporte público",
                 icon="bus",
                 color="#10B981",
-                budget=Decimal("100.00"),
+                budget=Decimal("12000.00"),
                 active=True,
             ),
             Category(
                 id=3,
-                name="Guardería",
-                description="Cheques guardería y conciliación familiar",
-                icon="baby",
-                color="#F59E0B",
-                budget=Decimal("300.00"),
-                active=True,
-            ),
-            Category(
-                id=4,
                 name="Formación",
                 description="Cursos técnicos, certificaciones y libros",
                 icon="book-open",
                 color="#8B5CF6",
-                budget=Decimal("500.00"),
+                budget=Decimal("10000.00"),
                 active=True,
             ),
             Category(
-                id=5,
+                id=4,
                 name="Salud",
                 description="Seguro médico privado y bienestar físico",
                 icon="heart-pulse",
                 color="#EF4444",
-                budget=Decimal("200.00"),
+                budget=Decimal("8000.00"),
+                active=True,
+            ),
+            Category(
+                id=5,
+                name="Guardería",
+                description="Cheques guardería y conciliación familiar",
+                icon="baby",
+                color="#F59E0B",
+                budget=Decimal("6000.00"),
                 active=True,
             ),
             Category(
@@ -105,23 +105,22 @@ def seed_database():
                 description="Cuotas de centros deportivos y suscripciones fitness",
                 icon="dumbbell",
                 color="#EC4899",
-                budget=Decimal("60.00"),
+                budget=Decimal("5000.00"),
                 active=True,
             ),
         ]
         db.add_all(categories_data)
         db.commit()
 
-        # 4. Poblar Empleados (Employee)
-        print("[+] Registrando empleados con topes presupuestarios...")
+        # 4. Poblar Empleados (SOLO departamentos: Tecnología, Marketing, RRHH, Ventas - SIN position)
+        print("[+] Registrando empleados en departamentos exclusivos (Tecnología, Marketing, RRHH, Ventas)...")
         employees_data = [
             Employee(
                 id=1,
                 first_name="Ana",
                 last_name="Gómez",
                 email="ana.gomez@company.com",
-                department="Engineering",
-                position="Senior Software Engineer",
+                department="Tecnología",
                 max_budget=Decimal("2500.00"),
             ),
             Employee(
@@ -129,8 +128,7 @@ def seed_database():
                 first_name="Carlos",
                 last_name="Ruiz",
                 email="carlos.ruiz@company.com",
-                department="Product",
-                position="Lead Product Manager",
+                department="Tecnología",
                 max_budget=Decimal("1800.00"),
             ),
             Employee(
@@ -139,7 +137,6 @@ def seed_database():
                 last_name="Torres",
                 email="elena.torres@company.com",
                 department="Marketing",
-                position="Marketing Lead",
                 max_budget=Decimal("1200.00"),
             ),
             Employee(
@@ -147,8 +144,7 @@ def seed_database():
                 first_name="David",
                 last_name="Martí",
                 email="david.marti@company.com",
-                department="Sales",
-                position="Senior Account Executive",
+                department="Ventas",
                 max_budget=Decimal("2000.00"),
             ),
             Employee(
@@ -156,8 +152,7 @@ def seed_database():
                 first_name="Sofía",
                 last_name="Benítez",
                 email="sofia.benitez@company.com",
-                department="HR",
-                position="People Operations Specialist",
+                department="RRHH",
                 max_budget=Decimal("1500.00"),
             ),
             Employee(
@@ -165,8 +160,7 @@ def seed_database():
                 first_name="Javier",
                 last_name="López",
                 email="javier.lopez@company.com",
-                department="Engineering",
-                position="Backend Developer",
+                department="Tecnología",
                 max_budget=Decimal("2200.00"),
             ),
             Employee(
@@ -174,8 +168,7 @@ def seed_database():
                 first_name="Lucía",
                 last_name="Ramos",
                 email="lucia.ramos@company.com",
-                department="Finance",
-                position="Financial Controller",
+                department="Ventas",
                 max_budget=Decimal("1000.00"),
             ),
             Employee(
@@ -183,8 +176,7 @@ def seed_database():
                 first_name="Miguel Ángel",
                 last_name="Sanz",
                 email="miguel.sanz@company.com",
-                department="Design",
-                position="Senior UI/UX Designer",
+                department="Marketing",
                 max_budget=Decimal("800.00"),
             ),
             Employee(
@@ -192,8 +184,7 @@ def seed_database():
                 first_name="Carmen",
                 last_name="Vega",
                 email="carmen.vega@company.com",
-                department="Legal",
-                position="Legal & Compliance Counsel",
+                department="RRHH",
                 max_budget=Decimal("1400.00"),
             ),
             Employee(
@@ -201,53 +192,52 @@ def seed_database():
                 first_name="Pablo",
                 last_name="Navarro",
                 email="pablo.navarro@company.com",
-                department="Support",
-                position="Customer Success Lead",
+                department="Ventas",
                 max_budget=Decimal("600.00"),
             ),
         ]
         db.add_all(employees_data)
         db.commit()
 
-        # 5. Asignar Beneficios por Empleado respetando max_budget (Benefit)
+        # 5. Asignar Beneficios por Empleado respetando max_budget
         print("[+] Creando asignaciones de beneficios individuales...")
         benefits_data = [
-            # Ana Gómez (Max: 2500)
-            Benefit(id=1, employee_id=1, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")),
-            Benefit(id=2, employee_id=1, category_id=4, allocated_amount=Decimal("1200.00"), spent_amount=Decimal("0.00")),
-            # Carlos Ruiz (Max: 1800)
-            Benefit(id=3, employee_id=2, category_id=1, allocated_amount=Decimal("800.00"), spent_amount=Decimal("0.00")),
-            Benefit(id=4, employee_id=2, category_id=2, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),
-            # Elena Torres (Max: 1200)
-            Benefit(id=5, employee_id=3, category_id=2, allocated_amount=Decimal("500.00"), spent_amount=Decimal("0.00")),
-            Benefit(id=6, employee_id=3, category_id=3, allocated_amount=Decimal("600.00"), spent_amount=Decimal("0.00")),
-            # David Martí (Max: 2000)
-            Benefit(id=7, employee_id=4, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")),
-            Benefit(id=8, employee_id=4, category_id=5, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),
-            # Sofía Benítez (Max: 1500)
-            Benefit(id=9, employee_id=5, category_id=4, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")),
-            # Javier López (Max: 2200)
-            Benefit(id=10, employee_id=6, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")),
-            # Lucía Ramos (Max: 1000)
-            Benefit(id=11, employee_id=7, category_id=1, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),
-            # Miguel Ángel Sanz (Max: 800)
-            Benefit(id=12, employee_id=8, category_id=6, allocated_amount=Decimal("700.00"), spent_amount=Decimal("0.00")),
-            # Carmen Vega (Max: 1400)
-            Benefit(id=13, employee_id=9, category_id=2, allocated_amount=Decimal("1200.00"), spent_amount=Decimal("0.00")),
-            # Pablo Navarro (Max: 600)
-            Benefit(id=14, employee_id=10, category_id=1, allocated_amount=Decimal("550.00"), spent_amount=Decimal("0.00")),
+            # Ana Gómez (Max: 2500) - Tecnología
+            Benefit(id=1, employee_id=1, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")), # Comida
+            Benefit(id=2, employee_id=1, category_id=3, allocated_amount=Decimal("1200.00"), spent_amount=Decimal("0.00")), # Formación
+            # Carlos Ruiz (Max: 1800) - Tecnología
+            Benefit(id=3, employee_id=2, category_id=1, allocated_amount=Decimal("800.00"), spent_amount=Decimal("0.00")),  # Comida
+            Benefit(id=4, employee_id=2, category_id=2, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),  # Transporte
+            # Elena Torres (Max: 1200) - Marketing
+            Benefit(id=5, employee_id=3, category_id=2, allocated_amount=Decimal("500.00"), spent_amount=Decimal("0.00")),  # Transporte
+            Benefit(id=6, employee_id=3, category_id=5, allocated_amount=Decimal("600.00"), spent_amount=Decimal("0.00")),  # Guardería
+            # David Martí (Max: 2000) - Ventas
+            Benefit(id=7, employee_id=4, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")), # Comida
+            Benefit(id=8, employee_id=4, category_id=4, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")),  # Salud
+            # Sofía Benítez (Max: 1500) - RRHH
+            Benefit(id=9, employee_id=5, category_id=3, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")), # Formación
+            # Javier López (Max: 2200) - Tecnología
+            Benefit(id=10, employee_id=6, category_id=1, allocated_amount=Decimal("1000.00"), spent_amount=Decimal("0.00")),# Comida
+            # Lucía Ramos (Max: 1000) - Ventas
+            Benefit(id=11, employee_id=7, category_id=1, allocated_amount=Decimal("900.00"), spent_amount=Decimal("0.00")), # Comida
+            # Miguel Ángel Sanz (Max: 800) - Marketing
+            Benefit(id=12, employee_id=8, category_id=6, allocated_amount=Decimal("700.00"), spent_amount=Decimal("0.00")), # Gimnasio
+            # Carmen Vega (Max: 1400) - RRHH
+            Benefit(id=13, employee_id=9, category_id=2, allocated_amount=Decimal("1200.00"), spent_amount=Decimal("0.00")),# Transporte
+            # Pablo Navarro (Max: 600) - Ventas
+            Benefit(id=14, employee_id=10, category_id=1, allocated_amount=Decimal("550.00"), spent_amount=Decimal("0.00")),# Comida
         ]
         db.add_all(benefits_data)
         db.commit()
 
         # 6. Registrar Gastos con Estados (Expense)
         print("[+] Registrando gastos historicos, pendientes y aprobados...")
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expenses_data = [
             # 1. Ana Gómez - Comida (Asignado: 1000) -> Gasto 250 -> Verde (25%)
             Expense(employee_id=1, category_id=1, amount=Decimal("250.00"), description="Almuerzos de equipo marzo", status="APPROVED", expense_date=now - timedelta(days=20)),
             # 2. Ana Gómez - Formación (Asignado: 1200) -> Gasto 1150 -> Rojo (95.8%)
-            Expense(employee_id=1, category_id=4, amount=Decimal("1150.00"), description="Certificacion Cloud Solutions Architect", status="APPROVED", expense_date=now - timedelta(days=18)),
+            Expense(employee_id=1, category_id=3, amount=Decimal("1150.00"), description="Certificacion Cloud Solutions Architect", status="APPROVED", expense_date=now - timedelta(days=18)),
 
             # 3. Carlos Ruiz - Comida (Asignado: 800) -> Gasto 450 -> Amarillo (56.2%)
             Expense(employee_id=2, category_id=1, amount=Decimal("450.00"), description="Menus semanales cafeteria", status="APPROVED", expense_date=now - timedelta(days=15)),
@@ -257,15 +247,15 @@ def seed_database():
             # 5. Elena Torres - Transporte (Asignado: 500) -> Gasto 150 -> Verde (30%)
             Expense(employee_id=3, category_id=2, amount=Decimal("150.00"), description="Bono mensual metro y cercanias", status="APPROVED", expense_date=now - timedelta(days=12)),
             # 6. Elena Torres - Guardería (Asignado: 600) -> Gasto 100 Rechazado
-            Expense(employee_id=3, category_id=3, amount=Decimal("100.00"), description="Material escolar no subvencionado", status="REJECTED", expense_date=now - timedelta(days=10)),
+            Expense(employee_id=3, category_id=5, amount=Decimal("100.00"), description="Material escolar no subvencionado", status="REJECTED", expense_date=now - timedelta(days=10)),
 
             # 7. David Martí - Comida (Asignado: 1000) -> Gasto 850 -> Rojo (85%)
             Expense(employee_id=4, category_id=1, amount=Decimal("850.00"), description="Catering almuerzo clientes corporativos", status="APPROVED", expense_date=now - timedelta(days=8)),
             # 8. David Martí - Salud (Asignado: 900) -> Gasto 350 Pendiente
-            Expense(employee_id=4, category_id=5, amount=Decimal("350.00"), description="Rehabilitacion y fisioterapia postural", status="PENDING", expense_date=now - timedelta(days=4)),
+            Expense(employee_id=4, category_id=4, amount=Decimal("350.00"), description="Rehabilitacion y fisioterapia postural", status="PENDING", expense_date=now - timedelta(days=4)),
 
             # 9. Sofía Benítez - Formación (Asignado: 1000) -> Gasto 500 -> Amarillo (50%)
-            Expense(employee_id=5, category_id=4, amount=Decimal("500.00"), description="Seminario People Analytics & HR Trends", status="APPROVED", expense_date=now - timedelta(days=7)),
+            Expense(employee_id=5, category_id=3, amount=Decimal("500.00"), description="Seminario People Analytics & HR Trends", status="APPROVED", expense_date=now - timedelta(days=7)),
 
             # 10. Javier López - Comida (Asignado: 1000) -> Gasto 300 -> Verde (30%)
             Expense(employee_id=6, category_id=1, amount=Decimal("300.00"), description="Comidas de trabajo oficina", status="APPROVED", expense_date=now - timedelta(days=6)),
@@ -285,11 +275,11 @@ def seed_database():
             # Gastos Pendientes adicionales
             Expense(employee_id=1, category_id=1, amount=Decimal("120.00"), description="Cena de bienvenida nuevos ingresos", status="PENDING", expense_date=now - timedelta(days=2)),
             Expense(employee_id=3, category_id=2, amount=Decimal("45.00"), description="Taxi de urgencia estacion", status="PENDING", expense_date=now - timedelta(days=1)),
-            Expense(employee_id=5, category_id=4, amount=Decimal("40.00"), description="Libro Clean Architecture", status="PENDING", expense_date=now - timedelta(hours=14)),
+            Expense(employee_id=5, category_id=3, amount=Decimal("40.00"), description="Libro Clean Architecture", status="PENDING", expense_date=now - timedelta(hours=14)),
             Expense(employee_id=6, category_id=1, amount=Decimal("35.00"), description="Cafe reunion de sprint", status="PENDING", expense_date=now - timedelta(hours=6)),
 
             # Gastos Rechazados adicionales
-            Expense(employee_id=1, category_id=4, amount=Decimal("180.00"), description="Compra periferico ergonomico", status="REJECTED", expense_date=now - timedelta(days=14)),
+            Expense(employee_id=1, category_id=3, amount=Decimal("180.00"), description="Compra periferico ergonomico", status="REJECTED", expense_date=now - timedelta(days=14)),
             Expense(employee_id=4, category_id=1, amount=Decimal("95.00"), description="Ocio personal fin de semana", status="REJECTED", expense_date=now - timedelta(days=13)),
             Expense(employee_id=7, category_id=1, amount=Decimal("250.00"), description="Billete de tren viaje privado", status="REJECTED", expense_date=now - timedelta(days=12)),
         ]
@@ -322,17 +312,24 @@ def seed_database():
         rejected_exp = db.query(Expense).filter(Expense.status == "REJECTED").count()
         total_spent = sum((e.amount for e in db.query(Expense).filter(Expense.status == "APPROVED").all()), Decimal("0.00"))
 
-        print("\n" + "=" * 62)
+        print("\n" + "=" * 64)
         print("[OK] BASE DE DATOS POBLADA EXITOSAMENTE (db.sqlite3)")
-        print("=" * 62)
+        print("=" * 64)
         print(f"[*] Presupuesto Global    : {company.global_budget:,.2f} EUR")
-        print(f"[*] Categorias Catalogo   : {cat_count}")
+        print(f"[*] Categorías Catálogo   : {cat_count} (Presupuestos entre 5.000 y 15.000 EUR)")
+        for cat in db.query(Category).all():
+            print(f"    - {cat.name:12}: {cat.budget:,.2f} EUR")
         print(f"[*] Empleados Activos     : {emp_count}")
+        dept_summary = {}
+        for emp in db.query(Employee).all():
+            dept_summary[emp.department] = dept_summary.get(emp.department, 0) + 1
+        for dept, count in dept_summary.items():
+            print(f"    - {dept:12}: {count} empleados")
         print(f"[*] Beneficios Asignados  : {ben_count}")
         print(f"[*] Total Gastos          : {exp_count} (Aprobados: {approved_exp}, Pendientes: {pending_exp}, Rechazados: {rejected_exp})")
         print(f"[*] Gasto Total Ejecutado : {total_spent:,.2f} EUR ({float(total_spent / company.global_budget * 100):.1f}% del presupuesto)")
-        print("[*] Semaforos activados   : Verde (<=33%), Amarillo (33-66%), Rojo (>66%)")
-        print("=" * 62 + "\n")
+        print("[*] Semáforos activados   : Verde (<=33%), Amarillo (33-66%), Rojo (>66%)")
+        print("=" * 64 + "\n")
 
     except Exception as e:
         db.rollback()
