@@ -32,13 +32,16 @@ from model.employee_model import Employee
 from model.expense_model import Expense
 
 
-def seed_database():
+def seed_database(recreate_schema: bool = True):
     print("[*] Iniciando el proceso de seeding de la base de datos...")
 
     # 1. Recrear el esquema completo para aplicar actualizaciones de modelos
-    print("[*] Recreando esquema de base de datos via SQLAlchemy metadata...")
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    if recreate_schema:
+        print("[*] Recreando esquema de base de datos via SQLAlchemy metadata...")
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+    else:
+        Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
@@ -58,7 +61,7 @@ def seed_database():
                 id=1,
                 name="Comida",
                 description="Ayuda para comidas diarias y tickets restaurante",
-                icon="utensils",
+                icon="restaurant",
                 color="#3B82F6",
                 budget=Decimal("15000.00"),
                 active=True,
@@ -67,7 +70,7 @@ def seed_database():
                 id=2,
                 name="Transporte",
                 description="Gastos de desplazamiento urbano y transporte público",
-                icon="bus",
+                icon="directions_bus",
                 color="#10B981",
                 budget=Decimal("12000.00"),
                 active=True,
@@ -76,7 +79,7 @@ def seed_database():
                 id=3,
                 name="Formación",
                 description="Cursos técnicos, certificaciones y libros",
-                icon="book-open",
+                icon="school",
                 color="#8B5CF6",
                 budget=Decimal("10000.00"),
                 active=True,
@@ -85,7 +88,7 @@ def seed_database():
                 id=4,
                 name="Salud",
                 description="Seguro médico privado y bienestar físico",
-                icon="heart-pulse",
+                icon="health_and_safety",
                 color="#EF4444",
                 budget=Decimal("8000.00"),
                 active=True,
@@ -94,7 +97,7 @@ def seed_database():
                 id=5,
                 name="Guardería",
                 description="Cheques guardería y conciliación familiar",
-                icon="baby",
+                icon="child_care",
                 color="#F59E0B",
                 budget=Decimal("6000.00"),
                 active=True,
@@ -103,7 +106,7 @@ def seed_database():
                 id=6,
                 name="Gimnasio",
                 description="Cuotas de centros deportivos y suscripciones fitness",
-                icon="dumbbell",
+                icon="fitness_center",
                 color="#EC4899",
                 budget=Decimal("5000.00"),
                 active=True,

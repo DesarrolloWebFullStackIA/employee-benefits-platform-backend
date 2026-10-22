@@ -58,6 +58,18 @@ def _available(db: Session, employee_id: int, category_id: int) -> Decimal:
     return Decimal(str(benefit.allocated_amount)) - _committed_amount(db, employee_id, category_id)
 
 
+def _recalculate_benefit_spent(db: Session, employee_id: int, category_id: int) -> None:
+    db.flush()
+    benefit = _get_benefit(db, employee_id, category_id, lock=True)
+    if benefit is not None:
+        approved_total = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+            Expense.employee_id == employee_id,
+            Expense.category_id == category_id,
+            func.upper(Expense.status) == "APPROVED",
+        ).scalar()
+        benefit.spent_amount = Decimal(str(approved_total))
+
+
 
 def get_expenses(db: Session, status: str, employee_id: int, category_id: int, search: str):
     query = db.query(Expense).options(joinedload(Expense.employee), joinedload(Expense.category))
@@ -177,6 +189,7 @@ def approve_expense(db: Session, expense_id: int):
             raise HTTPException(409, "Saldo insuficiente para aprobar este gasto.")
 
         expense.status = "APPROVED"
+        _recalculate_benefit_spent(db, expense.employee_id, expense.category_id)
         db.commit()
     except HTTPException:
         db.rollback()

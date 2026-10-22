@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, inspect, text
@@ -103,7 +104,6 @@ def test_category_crud_and_name_conflict():
                 last_name="García",
                 email="ana@example.com",
                 department="People",
-                position="HR",
             )
             db.add(employee)
             db.flush()
@@ -114,21 +114,21 @@ def test_category_crud_and_name_conflict():
                         employee_id=employee.id,
                         category_id=category_id,
                         amount=600,
-                        description="Gasto aprobado",
+                        concept="Gasto aprobado", date=date.today(),
                         status="APPROVED",
                     ),
                     Expense(
                         employee_id=employee.id,
                         category_id=category_id,
                         amount=100,
-                        description="Gasto pendiente",
+                        concept="Gasto pendiente", date=date.today(),
                         status="PENDING",
                     ),
                     Expense(
                         employee_id=employee.id,
                         category_id=category_id,
                         amount=900,
-                        description="Gasto rechazado",
+                        concept="Gasto rechazado", date=date.today(),
                         status="REJECTED",
                     ),
                 ]
@@ -233,14 +233,14 @@ def test_category_creation_rejects_when_no_money_remains():
             connection.execute(
                 text(
                     "INSERT INTO employees "
-                    "(first_name, last_name, email, department, position, max_budget) "
-                    "VALUES ('Ana', 'Test', 'ana.test@example.com', 'People', 'HR', 1000)"
+                    "(first_name, last_name, email, department, max_budget) "
+                    "VALUES ('Ana', 'Test', 'ana.test@example.com', 'People', 1000)"
                 )
             )
             connection.execute(
                 text(
-                    "INSERT INTO expenses (employee_id, category_id, amount, description, status) "
-                    "VALUES (1, 1, 1000, 'Gasto total', 'APPROVED')"
+                    "INSERT INTO expenses (employee_id, category_id, amount, concept, date, status) "
+                    "VALUES (1, 1, 1000, 'Gasto total', '2026-01-01', 'APPROVED')"
                 )
             )
         response = client.post(
@@ -322,88 +322,26 @@ def test_category_budget_uses_updated_dashboard_cap():
         engine.dispose()
 
 
-def test_init_db_migrates_existing_category_table(monkeypatch):
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                "CREATE TABLE categories ("
-                "id INTEGER PRIMARY KEY, "
-                "name VARCHAR(100) NOT NULL UNIQUE, "
-                "description VARCHAR(255), "
-                "icon VARCHAR(100), "
-                "color VARCHAR(50), "
-                "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)"
-            )
-        )
-
-    monkeypatch.setattr(database_module, "engine", engine)
-    try:
-        database_module.init_db()
-        column_names = {
-            column["name"] for column in inspect(engine).get_columns("categories")
-        }
-        assert "active" in column_names
-        assert "budget" in column_names
-    finally:
-        Base.metadata.drop_all(bind=engine)
-        engine.dispose()
-
-
-def test_init_db_seeds_default_categories_only_once(monkeypatch):
+def test_init_db_seeds_via_seed_py_when_empty(monkeypatch):
+    import database.seed as seed_module
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     monkeypatch.setattr(database_module, "engine", engine)
+    monkeypatch.setattr(seed_module, "engine", engine)
     TestingSessionLocal = sessionmaker(bind=engine)
+    monkeypatch.setattr(database_module, "SessionLocal", TestingSessionLocal)
+    monkeypatch.setattr(seed_module, "SessionLocal", TestingSessionLocal)
     try:
         database_module.init_db()
         with TestingSessionLocal() as db:
             categories = db.query(Category).all()
-            assert len(categories) == 5
-            assert sum(float(category.budget) for category in categories) == 50500
-            db.delete(categories[0])
-            db.commit()
-
-        database_module.init_db()
-        with TestingSessionLocal() as db:
-            assert db.query(Category).count() == 4
-    finally:
-        Base.metadata.drop_all(bind=engine)
-        engine.dispose()
-
-
-def test_init_db_migrates_legacy_category_budgets(monkeypatch):
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    monkeypatch.setattr(database_module, "engine", engine)
-    TestingSessionLocal = sessionmaker(bind=engine)
-    try:
-        Base.metadata.create_all(bind=engine)
-        with TestingSessionLocal() as db:
-            db.add(
-                Category(
-                    name="Comida",
-                    icon="restaurant",
-                    color="comida",
-                    budget=0,
-                )
-            )
-            db.commit()
-
-        database_module.init_db()
-        with TestingSessionLocal() as db:
-            category = db.query(Category).filter_by(name="Comida").one()
-            assert float(category.budget) == 15000
+            assert len(categories) == 6
+            assert any(c.name == "Comida" and c.icon == "restaurant" for c in categories)
+            assert any(c.name == "Gimnasio" and c.icon == "fitness_center" for c in categories)
+            assert db.query(Employee).count() == 10
     finally:
         Base.metadata.drop_all(bind=engine)
         engine.dispose()

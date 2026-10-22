@@ -138,7 +138,7 @@ def update_category(
         )
     if "budget" in updates and updates["budget"] is not None:
         budget_increase = max(
-            Decimal("0.00"), updates["budget"] - (category.budget or Decimal("0.00"))
+            Decimal("0.00"), Decimal(str(updates["budget"])) - (category.budget or Decimal("0.00"))
         )
         remaining_budget = _remaining_category_budget(db, global_budget_cap)
         if budget_increase > remaining_budget:
