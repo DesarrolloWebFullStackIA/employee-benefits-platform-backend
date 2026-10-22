@@ -24,6 +24,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:5500",
+         "http://localhost:5500"
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")
@@ -34,9 +36,9 @@ class Settings(BaseSettings):
         return v
 
     # Cloudinary Storage Configuration (Receipt uploads)
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
+    CLOUDINARY_CLOUD_NAME: str = "dxooutyum"
+    CLOUDINARY_API_KEY: str = "113547718117145"
+    CLOUDINARY_API_SECRET: str = "gYI_D_XOoyiSzLdQC1_9rMXF_sY"
 
     # GenAI / Google Genkit Configuration
     GEMINI_API_KEY: str = ""

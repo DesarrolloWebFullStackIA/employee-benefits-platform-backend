@@ -160,9 +160,9 @@ def main():
         print("=" * 68 + "\n")
 
         # 4. Open default browser
-        if not args.no_browser and FRONTEND_DIR.exists():
-            time.sleep(0.6)
-            webbrowser.open(frontend_url)
+        #if not args.no_browser and FRONTEND_DIR.exists():
+        #    time.sleep(0.6)
+        #    webbrowser.open(frontend_url)
 
         # 5. Monitor processes loop
         while True:

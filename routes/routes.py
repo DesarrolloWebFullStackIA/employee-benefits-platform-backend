@@ -6,6 +6,7 @@ from routes.employee_routes import benefit_router, router as employee_router
 from routes.expense_routes import router as expense_router
 from routes.upload_routes import router as upload_router
 from routes.company_routes import router as company_router
+from routes.chat_routes import router as chat_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -18,6 +19,7 @@ api_router.include_router(dashboard_router)
 api_router.include_router(upload_router)
 api_router.include_router(ai_router)
 api_router.include_router(company_router)
+api_router.include_router(chat_router)
 
 @api_router.get("/status", tags=["System"])
 def api_status():
