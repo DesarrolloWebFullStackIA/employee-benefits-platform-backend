@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables or .env file."""
 
     PROJECT_NAME: str = "Pluxee Enterprise HR Suite Backend"
+    VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     PORT: int = 8000
