@@ -45,13 +45,16 @@ def init_db() -> None:
     import model  # noqa: F401 - Ensure models are loaded into Base metadata
     Base.metadata.create_all(bind=engine)
     session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    has_data = False
     with session_factory() as db:
         from model.company_model import Company
         from model.category_model import Category
+        from model.employee_model import Employee
         has_data = (
-            db.query(Company).first() is not None or
-            db.query(Category).first() is not None
+            db.query(Company).first() is not None and
+            db.query(Category).first() is not None and
+            db.query(Employee).first() is not None
         )
-        if not has_data:
-            from database.seed import seed_database
-            seed_database(recreate_schema=False)
+    if not has_data:
+        from database.seed import seed_database
+        seed_database(recreate_schema=False)

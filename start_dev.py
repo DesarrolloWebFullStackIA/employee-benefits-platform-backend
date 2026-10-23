@@ -2,10 +2,12 @@
 """
 Pluxee Enterprise HR Suite - Unified Local Development Server
 Starts both the FastAPI Backend and the Vanilla JS Frontend,
+ensures database tables and seed fixtures are ready,
 and opens the application in your default browser.
 
 Usage:
     python start_dev.py
+    python start_dev.py --seed
     python start_dev.py --no-browser
     python start_dev.py --backend-port 8000 --frontend-port 5500
 """
@@ -18,6 +20,18 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
+
+# Configure Windows console encoding
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 # Paths definition
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -55,6 +69,79 @@ def wait_for_port(port: int, timeout: float = 8.0, host: str = "127.0.0.1") -> b
     return False
 
 
+def check_and_seed_database(python_exe: str, backend_dir: Path, force_seed: bool = False) -> bool:
+    """
+    Check if database tables and fixtures are present.
+    If tables or data are missing (or force_seed is True), execute database/seed.py.
+    """
+    if force_seed:
+        print("\n[*] Se solicitó forzar el reseteo de la base de datos (--seed / --reset-db).")
+        print("[*] Ejecutando database/seed.py...")
+        res = subprocess.run([python_exe, "database/seed.py"], cwd=str(backend_dir))
+        return res.returncode == 0
+
+    print("\n[*] Verificando estado de la base de datos...")
+    check_code = (
+        "import sys\n"
+        "from sqlalchemy import inspect\n"
+        "from database.database import engine, SessionLocal\n"
+        "from model.company_model import Company\n"
+        "from model.category_model import Category\n"
+        "from model.employee_model import Employee\n"
+        "\n"
+        "try:\n"
+        "    inspector = inspect(engine)\n"
+        "    tables = set(inspector.get_table_names())\n"
+        "    required = {'company', 'categories', 'employees', 'benefits', 'expenses'}\n"
+        "    if not required.issubset(tables):\n"
+        "        print('MISSING_TABLES')\n"
+        "        sys.exit(0)\n"
+        "    with SessionLocal() as db:\n"
+        "        has_data = (\n"
+        "            db.query(Company).first() is not None and\n"
+        "            db.query(Category).first() is not None and\n"
+        "            db.query(Employee).first() is not None\n"
+        "        )\n"
+        "        if not has_data:\n"
+        "            print('EMPTY_DATA')\n"
+        "            sys.exit(0)\n"
+        "    print('DB_OK')\n"
+        "except Exception as e:\n"
+        "    print(f'CHECK_ERROR: {e}')\n"
+        "    sys.exit(0)\n"
+    )
+
+    result = subprocess.run(
+        [python_exe, "-c", check_code],
+        cwd=str(backend_dir),
+        capture_output=True,
+        text=True,
+    )
+    status = result.stdout.strip()
+
+    if status == "DB_OK":
+        print("   \033[1;32m[OK] Base de datos verificada: tablas y fixtures existentes.\033[0m")
+        return True
+
+    reason = (
+        "tablas no encontradas"
+        if "MISSING_TABLES" in status
+        else ("tablas vacías sin datos" if "EMPTY_DATA" in status else f"estado: {status}")
+    )
+    print(f"   \033[1;33m[*] Base de datos requiere inicialización ({reason}).\033[0m")
+    print("   [*] Ejecutando database/seed.py para crear tablas y fixtures...")
+    seed_result = subprocess.run(
+        [python_exe, "database/seed.py"],
+        cwd=str(backend_dir),
+    )
+    if seed_result.returncode != 0:
+        print("   \033[1;31m[!] Error durante la ejecución de seed.py.\033[0m")
+        return False
+
+    print("   \033[1;32m[OK] Base de datos creada y poblada exitosamente.\033[0m")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Launch Pluxee Backend & Frontend servers for integrated local testing."
@@ -76,6 +163,13 @@ def main():
         action="store_true",
         help="Do not open browser automatically upon startup",
     )
+    parser.add_argument(
+        "--seed",
+        "--reset-db",
+        dest="force_seed",
+        action="store_true",
+        help="Force database re-creation and fixture seeding before launch",
+    )
     args = parser.parse_args()
 
     print("=" * 68)
@@ -88,6 +182,11 @@ def main():
     if not FRONTEND_DIR.exists():
         print(f"[!] Warning: Frontend folder not found at {FRONTEND_DIR}")
 
+    # Ensure database is initialized and seeded before booting servers
+    if not check_and_seed_database(PYTHON_EXE, BACKEND_DIR, force_seed=args.force_seed):
+        print("\n[!] Falló la inicialización de la base de datos. Abortando inicio.")
+        sys.exit(1)
+
     backend_port = args.backend_port
     if is_port_in_use(backend_port):
         print(f"[!] Warning: Port {backend_port} is already active.")
@@ -96,11 +195,8 @@ def main():
         backend_port = alt_backend
 
     frontend_port = args.frontend_port
-    skip_frontend_spawn = False
-
     if is_port_in_use(frontend_port):
         print(f"[*] Notice: Port {frontend_port} is already in use (e.g., VS Code Live Server).")
-        # Find an alternative port for our own static server
         alt_frontend = find_available_port(frontend_port + 1)
         print(f"    Starting internal static server on port {alt_frontend}...")
         frontend_port = alt_frontend
