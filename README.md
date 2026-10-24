@@ -1,5 +1,11 @@
 # Pluxee Enterprise HR Suite - Backend API
 
+![Status](https://img.shields.io/badge/status-academic%20project-blue)
+![Affiliation](https://img.shields.io/badge/affiliation-unofficial-orange)
+![License](https://img.shields.io/badge/purpose-educational%20only-green)
+
+---
+
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00.svg?style=flat&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
